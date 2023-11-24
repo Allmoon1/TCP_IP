@@ -86,6 +86,8 @@ void Server::WaitForClient()
         }
         ::InetNtop(addr_clt.sin_family, &addr_clt, buf_ip, IP_BUF_SIZE);
         cout << "A new client connected...IP address: " << buf_ip << ", port number: " << ::ntohs(addr_clt.sin_port) << endl;
+        unsigned long non_block = 1;
+        //ioctlsocket(sock_clt, FIONBIO, &non_block);
         h_thread = ::CreateThread(nullptr, 0, CreateClientThread, (LPVOID)sock_clt, 0, nullptr);
         if (h_thread == NULL)
         {
@@ -131,10 +133,20 @@ DWORD WINAPI CreateClientThread(LPVOID lpParameter)
         }
         else
         {
-            cerr << "Failed to receive message from client!Error code: " << ::GetLastError() << "\n";
-            ::closesocket(sock_clt);
-            system("pause");
-            return 1;
+            int lasterror = WSAGetLastError();
+
+            if (WSAEWOULDBLOCK == lasterror) {
+                printf("No data\n");
+                printf("Some workload\n");
+                Sleep(1000);
+            }
+            else {
+                cerr << "Failed to receive message from client!Error code: " << ::GetLastError() << "\n";
+                ::closesocket(sock_clt);
+                system("pause");
+                return 1;
+            }
+            
         }
     } while (ret_val > 0);
     //
